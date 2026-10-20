@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Link Rotator Admin</title>
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div><p class="eyebrow">CONTROL PANEL</p><h1>Link Rotator</h1><p class="muted">Manage destinations and monitor redirect traffic.</p></div>
+      <button id="logout" class="secondary hidden">Sign out</button>
+    </header>
+
+    <section id="login-panel" class="panel login-panel">
+      <h2>Admin sign in</h2>
+      <p class="muted">Use the password configured in Netlify environment variables.</p>
+      <form id="login-form">
+        <label for="password">Admin password</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+        <button type="submit">Sign in</button>
+      </form>
+      <p id="login-error" class="error" role="status"></p>
+    </section>
+
+    <section id="app-panel" class="hidden">
+      <div class="stats">
+        <article class="stat"><span class="muted">Total redirects</span><strong id="total">0</strong></article>
+        <article class="stat"><span class="muted">Active links</span><strong id="active-count">0</strong></article>
+        <article class="stat"><span class="muted">All links</span><strong id="all-count">0</strong></article>
+      </div>
+
+      <section class="panel">
+        <div class="section-heading"><div><h2>Add a destination</h2><p class="muted">Paste a full HTTPS TikTok Pro URL.</p></div></div>
+        <form id="add-form" class="add-form">
+          <div><label for="new-label">Label</label><input id="new-label" maxlength="100" placeholder="Campaign A" required></div>
+          <div class="url-field"><label for="new-url">Destination URL</label><input id="new-url" type="url" placeholder="https://…" required></div>
+          <button type="submit">Add link</button>
+        </form>
+        <p id="notice" class="notice" role="status"></p>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading"><div><h2>Your links</h2><p class="muted">Enabled links participate in rotation in the order shown.</p></div><button id="refresh" class="secondary">Refresh</button></div>
+        <div id="empty" class="empty hidden">No links yet. Add your first destination above.</div>
+        <div id="links" class="links"></div>
+      </section>
+      <p class="footer muted">Counts reflect requests that reached this redirect service, not unique visitors or confirmed TikTok conversions.</p>
+    </section>
+  </main>
+  <script src="/admin/app.js" defer></script>
+</body>
+</html>

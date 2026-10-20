@@ -1,0 +1,9 @@
+{
+  "name": "tiktok-pro-link-rotator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Server-side round-robin redirector with Redis-backed analytics and protected link management.",
+  "dependencies": {
+    "@upstash/redis": "^1.34.3"
+  }
+}
