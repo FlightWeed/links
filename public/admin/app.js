@@ -114,6 +114,51 @@ $("add-form").addEventListener("submit", async e => {
     e.currentTarget.reset();
   } catch(err) { message(err.message,true); }
 });
+
+function parseBulkLinks(raw) {
+  return raw.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
+    const separator = line.indexOf("|");
+    if (separator >= 0) return { label: line.slice(0, separator).trim(), url: line.slice(separator + 1).trim() };
+    return { label: `Link ${links.length + index + 1}`, url: line };
+  });
+}
+$("bulk-file").addEventListener("change", async e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    $("bulk-text").value = await file.text();
+    bulkMessage(`Loaded ${file.name}. Review the links, then select Add all links.`);
+  } catch { bulkMessage("Could not read that file.", true); }
+});
+$("bulk-clear").addEventListener("click", () => {
+  $("bulk-text").value = ""; $("bulk-file").value = ""; bulkMessage("");
+});
+$("bulk-add").addEventListener("click", async () => {
+  const items = parseBulkLinks($("bulk-text").value);
+  if (!items.length) { bulkMessage("Paste links or upload a .txt file first.", true); return; }
+  const invalid = items.filter(item => {
+    try { const u = new URL(item.url); return u.protocol !== "https:" || !u.hostname || !item.label; }
+    catch { return true; }
+  });
+  if (invalid.length) {
+    bulkMessage(`Fix ${invalid.length} invalid line(s). Each line must be an HTTPS URL, or Label | HTTPS URL.`, true);
+    return;
+  }
+  const button = $("bulk-add"); button.disabled = true;
+  let added = 0;
+  try {
+    for (const item of items) {
+      await request("/.netlify/functions/admin-api", {
+        method: "POST", body: JSON.stringify({ action: "add", label: item.label, url: item.url })
+      });
+      added++; bulkMessage(`Adding links… ${added} of ${items.length}`);
+    }
+    $("bulk-text").value = ""; $("bulk-file").value = "";
+    await load(); bulkMessage(`Successfully added ${added} link(s).`);
+  } catch (err) {
+    await load(); bulkMessage(`Added ${added} of ${items.length} link(s). Stopped because: ${err.message}`, true);
+  } finally { button.disabled = false; }
+});
 $("refresh").addEventListener("click", load);
 $("logout").addEventListener("click", async () => {
   try { await request("/.netlify/functions/admin-logout", {method:"POST",body:"{}"}); } catch {}
