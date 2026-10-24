@@ -116,7 +116,7 @@ $("add-form").addEventListener("submit", async e => {
 });
 
 function parseBulkLinks(raw) {
-  return raw.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
+  return raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
     const separator = line.indexOf("|");
     if (separator >= 0) return { label: line.slice(0, separator).trim(), url: line.slice(separator + 1).trim() };
     return { label: `Link ${links.length + index + 1}`, url: line };
