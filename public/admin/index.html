@@ -43,6 +43,21 @@
       </section>
 
       <section class="panel">
+        <div class="section-heading"><div><h2>Bulk add links</h2><p class="muted">Paste one HTTPS URL per line, or use <code>Label | URL</code> to set custom labels. You can also upload a .txt file.</p></div></div>
+        <label for="bulk-text">Links</label>
+        <textarea id="bulk-text" rows="7" placeholder="https://pro.tiktok.com/t/...
+https://pro.tiktok.com/t/...
+Campaign C | https://pro.tiktok.com/t/..."></textarea>
+        <div class="link-actions bulk-actions">
+          <label class="file-picker" for="bulk-file">Choose .txt file</label>
+          <input id="bulk-file" type="file" accept=".txt,text/plain" class="hidden">
+          <button id="bulk-add" type="button">Add all links</button>
+          <button id="bulk-clear" type="button" class="secondary">Clear</button>
+        </div>
+        <p id="bulk-status" class="notice" role="status"></p>
+      </section>
+
+      <section class="panel">
         <div class="section-heading"><div><h2>Your links</h2><p class="muted">Enabled links participate in rotation in the order shown.</p></div><button id="refresh" class="secondary">Refresh</button></div>
         <div id="empty" class="empty hidden">No links yet. Add your first destination above.</div>
         <div id="links" class="links"></div>
