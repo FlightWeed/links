@@ -2,6 +2,7 @@ const $ = id => document.getElementById(id);
 const loginPanel = $("login-panel"), appPanel = $("app-panel");
 let links = [];
 
+function bulkMessage(text, isError=false) { const el = $("bulk-status"); el.textContent = text || ""; el.style.color = isError ? "#b91c1c" : "#166534"; }
 function message(text, isError=false) {
   const el = $("notice");
   el.textContent = text || "";
