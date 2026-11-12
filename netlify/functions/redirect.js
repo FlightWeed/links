@@ -17,6 +17,7 @@ local chosen = enabled[index]
 redis.call('SET', KEYS[2], tostring(cursor + 1))
 redis.call('HINCRBY', KEYS[3], chosen.id, 1)
 redis.call('INCR', KEYS[4])
+redis.call('SET', KEYS[5], tostring(os.time() * 1000))
 return {chosen.url, chosen.id}
 `;
 
@@ -25,7 +26,7 @@ exports.handler = async function () {
     const redis = getRedis();
     const result = await redis.eval(
       ROTATE_SCRIPT,
-      ["rotator:links", "rotator:cursor", "rotator:link_counts", "rotator:total"],
+      ["rotator:links", "rotator:cursor", "rotator:link_counts", "rotator:total", "rotator:last_activity"],
       []
     );
     if (!result || !result[0]) {
