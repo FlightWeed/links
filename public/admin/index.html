@@ -1,94 +1,26 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
-  <title>Link Rotator Admin</title>
-  <link rel="stylesheet" href="/admin/styles.css">
-</head>
-<body>
-  <main class="shell">
-    <header class="top">
-      <div><p class="eyebrow">CONTROL PANEL</p><h1>Link Rotator</h1><p class="muted">Manage destinations, track profiles and monitor activity.</p></div>
-      <button id="logout" class="secondary hidden">Sign out</button>
-    </header>
-
-    <section id="login-panel" class="panel login-panel">
-      <h2>Admin sign in</h2>
-      <p class="muted">Use the password configured in Netlify environment variables.</p>
-      <form id="login-form">
-        <label for="password">Admin password</label>
-        <input id="password" type="password" autocomplete="current-password" required>
-        <button type="submit">Sign in</button>
-      </form>
-      <p id="login-error" class="error" role="status"></p>
-    </section>
-
-    <section id="app-panel" class="hidden">
-      <div class="stats">
-        <article class="stat"><span class="muted">Total redirects</span><strong id="total">0</strong></article>
-        <article class="stat"><span class="muted">Active links</span><strong id="active-count">0</strong></article>
-        <article class="stat"><span class="muted">All links</span><strong id="all-count">0</strong></article>
-        <article class="stat"><span class="muted">Active profiles</span><strong id="active-profiles">0</strong></article>
-        <article class="stat"><span class="muted">Completed today</span><strong id="completed-today">0</strong></article>
-        <article class="stat"><span class="muted">Total claimed all time</span><strong id="claimed-total">$0</strong></article>
-      </div>
-
-      <section class="panel">
-        <div class="section-heading"><div><h2>Profile tracker</h2><p class="muted">Track profiles through completion. Each profile can only be claimed once.</p></div></div>
-        <form id="profile-form" class="add-form profile-form">
-          <div><label for="profile-name">Profile name</label><input id="profile-name" maxlength="100" placeholder="Profile username" required></div>
-          <div><label for="profile-link">Associated rotation link</label><select id="profile-link" required><option value="">Choose a link</option></select></div>
-          <button type="submit">Add profile</button>
-        </form>
-        <div class="setting-row">
-          <div><strong>Auto-exclude completed profiles</strong><p class="muted">When enabled, completing a profile disables its associated link in rotation. The profile stays in history.</p></div>
-          <label class="switch"><input id="auto-exclude" type="checkbox"><span class="switch-ui"></span></label>
-        </div>
-        <p id="profile-notice" class="notice" role="status"></p>
-        <div id="profiles-empty" class="empty">No profiles added yet.</div>
-        <div id="profiles" class="profiles"></div>
-      </section>
-
-      <section class="panel">
-        <div class="section-heading"><div><h2>Latest redirect activity</h2><p class="muted">Most recent redirect recorded by the service.</p></div></div>
-        <p id="last-activity" class="muted">No redirect activity recorded yet.</p>
-      </section>
-
-      <section class="panel">
-        <div class="section-heading"><div><h2>Add a destination</h2><p class="muted">Paste a full HTTPS TikTok Pro URL.</p></div></div>
-        <form id="add-form" class="add-form">
-          <div><label for="new-label">Label</label><input id="new-label" maxlength="100" placeholder="Campaign A" required></div>
-          <div class="url-field"><label for="new-url">Destination URL</label><input id="new-url" type="url" placeholder="https://…" required></div>
-          <button type="submit">Add link</button>
-        </form>
-        <p id="notice" class="notice" role="status"></p>
-      </section>
-
-      <section class="panel">
-        <div class="section-heading"><div><h2>Bulk add links</h2><p class="muted">Paste one HTTPS URL per line, or use <code>Label | URL</code> to set custom labels. You can also upload a .txt file.</p></div></div>
-        <label for="bulk-text">Links</label>
-        <textarea id="bulk-text" rows="7" placeholder="https://pro.tiktok.com/t/...
-https://pro.tiktok.com/t/...
-Campaign C | https://pro.tiktok.com/t/..."></textarea>
-        <div class="link-actions bulk-actions">
-          <label class="file-picker" for="bulk-file">Choose .txt file</label>
-          <input id="bulk-file" type="file" accept=".txt,text/plain" class="hidden">
-          <button id="bulk-add" type="button">Add all links</button>
-          <button id="bulk-clear" type="button" class="secondary">Clear</button>
-        </div>
-        <p id="bulk-status" class="notice" role="status"></p>
-      </section>
-
-      <section class="panel">
-        <div class="section-heading"><div><h2>Your links</h2><p class="muted">Enabled links participate in rotation in the order shown.</p></div><button id="refresh" class="secondary">Refresh</button></div>
-        <div id="empty" class="empty hidden">No links yet. Add your first destination above.</div>
-        <div id="links" class="links"></div>
-      </section>
-      <p class="footer muted">Redirect counts measure requests reaching this service, not unique visitors or confirmed TikTok conversions. Claimed totals reflect profile completions you record here.</p>
-    </section>
-  </main>
-  <script src="/admin/app.js" defer></script>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>GeeLark Ops</title><link rel="stylesheet" href="/admin/styles.css"></head>
+<body><main class="shell">
+<header class="brand"><div class="brand-mark">G</div><div><h1>GeeLark Ops</h1><p>Profile operations command center</p></div><button id="logout" class="secondary hidden">Sign out</button></header>
+<nav class="tabs" aria-label="Dashboard sections"><button class="tab active" data-tab="profiles-view">▦　Profiles &amp; links</button><button class="tab" data-tab="import-view">⇧　Import profiles</button><button class="tab" data-tab="daily-view">▥　Daily redirect</button></nav>
+<section id="login-panel" class="panel login-panel"><h2>Admin sign in</h2><p class="muted">Use the password configured in Netlify environment variables.</p><form id="login-form"><label for="password">Admin password</label><input id="password" type="password" autocomplete="current-password" required><button type="submit">Sign in</button></form><p id="login-error" class="error"></p></section>
+<section id="app-panel" class="hidden">
+<div class="intro"><p class="eyebrow">OPERATIONS DASHBOARD</p><h2>Live profile command center</h2><p class="muted">Live redirect monitoring, group controls, rotation experiments, points and claim records.</p><div class="livebar"><span id="today-date">Date</span><span class="live-dot">● Live · <span id="clock">--:--:--</span></span><button id="refresh" class="secondary">↻ Refresh</button></div></div>
+<div class="stats">
+<article class="stat"><span>Total redirect assignments</span><strong id="total">0</strong><small id="total-sub">All recorded redirects</small></article>
+<article class="stat"><span>Active GeeLark profiles</span><strong id="active-profiles">0</strong><small id="loaded-sub">Profiles loaded</small></article>
+<article class="stat"><span>Completed today</span><strong id="completed-today">0 / 0</strong><small>Daily checkmarks · New York time</small></article>
+<article class="stat"><span>Recorded $50 claims</span><strong id="claims-count">0</strong><small id="claimed-total">$0 recorded in all time</small></article>
+</div>
+<div class="latest"><strong>Latest redirect:</strong><div id="last-activity">No redirect activity recorded yet.</div><a href="#daily-view" class="jump-daily">See live activity →</a></div>
+<section id="profiles-view" class="panel view active-view"><div class="section-heading"><div><h2>Profiles &amp; rotation links</h2><p class="muted">Check the left box when a profile is done for today. It clears automatically at midnight ET.</p></div></div>
+<button id="show-add-profile" class="primary">＋ Add / paste profiles</button>
+<form id="profile-form" class="profile-form hidden"><div><label for="profile-name">GeeLark profile #</label><input id="profile-name" placeholder="e.g. 118" required></div><div><label for="profile-group">Group</label><input id="profile-group" placeholder="Ungrouped"></div><div><label for="profile-link">Rotation link</label><select id="profile-link"><option value="">No link assigned</option></select></div><button type="submit">Add profile</button></form>
+<div class="toolbar"><input id="search-profile" placeholder="⌕  Search profile # or TikTok URL"><select id="group-filter"><option value="">All groups</option></select><select id="status-filter"><option value="all">All profiles</option><option value="active">Active</option><option value="disabled">Disabled</option><option value="done">Done today</option><option value="notdone">Not marked today</option></select><span id="shown-count" class="muted">0 shown</span></div>
+<div class="bulk-tools"><label class="check-label"><input id="select-visible" type="checkbox"> Select visible</label><span id="selected-count">0 selected</span><button id="enable-selected" class="secondary">Enable selected</button><button id="disable-selected" class="secondary">Disable selected</button><select id="bulk-group"><option value="">Ungrouped</option></select><button id="assign-group" class="secondary">Assign group</button><button id="export-csv" class="secondary">Export CSV</button><button id="backup-json" class="secondary">Backup JSON</button></div>
+<div class="table-scroll"><table><thead><tr><th>Done today</th><th>GeeLark profile</th><th>Group</th><th>Profile status</th><th>Point balance</th><th>Claim $50</th><th>Redirects today / total</th><th>Last used (ET)</th><th>Select</th></tr></thead><tbody id="profile-rows"></tbody></table></div>
+</section>
+<section id="import-view" class="panel view"><h2>Import profiles</h2><p class="muted">Paste profile numbers, one per line, or upload a text/CSV file. Existing profiles will not be duplicated.</p><textarea id="import-text" rows="9" placeholder="118&#10;119&#10;121"></textarea><div class="link-actions"><label class="file-picker" for="import-file">Choose file</label><input id="import-file" type="file" accept=".txt,.csv,text/plain,text/csv" class="hidden"><button id="import-submit" class="primary">Import profiles</button></div><p id="import-status" class="notice"></p></section>
+<section id="daily-view" class="panel view"><h2>Daily redirect activity</h2><p class="muted">Current day activity and latest redirect records.</p><div class="stats compact"><article class="stat"><span>Redirects today</span><strong id="redirects-today">0</strong></article><article class="stat"><span>All-time redirects</span><strong id="redirects-all">0</strong></article></div><div id="activity-list" class="activity-list">No activity yet.</div></section>
+<section class="panel"><div class="section-heading"><div><h2>Rotation links</h2><p class="muted">Manage the URLs used by the round-robin redirector.</p></div></div><form id="add-form" class="add-form"><div><label for="new-label">Link label</label><input id="new-label" placeholder="Campaign A" required></div><div><label for="new-url">Rotation URL</label><input id="new-url" type="url" placeholder="https://pro.tiktok.com/..." required></div><button type="submit">Add link</button></form><p id="notice" class="notice"></p><div id="links" class="links"></div></section>
+<p class="footer muted">Daily checkmarks use New York time. A $50 claim is recorded once per profile unless reset by an administrator.</p></section></main><script src="/admin/app.js" defer></script></body></html>
