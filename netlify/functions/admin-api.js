@@ -2,6 +2,7 @@ const crypto = require("node:crypto");
 const { getRedis, json, hasSession, requireSameOrigin, validHttpsUrl } = require("./_shared");
 
 function newId() { return crypto.randomBytes(9).toString("hex"); }
+function utcDay(value) { return new Date(value).toISOString().slice(0, 10); }
 
 exports.handler = async function (event) {
   if (!hasSession(event)) return json(401, { error: "Please sign in again." });
@@ -13,11 +14,18 @@ exports.handler = async function (event) {
     const links = (await redis.get("rotator:links")) || [];
     const counts = await redis.hgetall("rotator:link_counts") || {};
     const total = Number(await redis.get("rotator:total") || 0);
+    const profiles = (await redis.get("rotator:profiles")) || [];
+    const settings = (await redis.get("rotator:profile_settings")) || { autoExcludeCompleted: false };
+    const claimedAllTime = Number(await redis.get("rotator:claimed_all_time") || 0);
 
     if (event.httpMethod === "GET") {
+      const today = new Date().toISOString().slice(0, 10);
       return json(200, {
         links: links.map(link => ({ ...link, count: Number(counts[link.id] || 0) })),
-        total
+        total, profiles, settings, claimedAllTime,
+        activeProfiles: profiles.filter(profile => !profile.completed).length,
+        completedToday: profiles.filter(profile => profile.completed && profile.completedAt && utcDay(profile.completedAt) === today).length,
+        lastActivity: await redis.get("rotator:last_activity") || null
       });
     }
 
@@ -47,12 +55,41 @@ exports.handler = async function (event) {
       const index = links.findIndex(x => x.id === body.id);
       if (index < 0) return json(404, { error: "Link not found." });
       links.splice(index, 1);
-      // Keep historical count hashes; deleting a link removes it from the UI, not the total.
+    } else if (action === "add-profile") {
+      const name = String(body.name || "").trim().slice(0, 100);
+      const linkId = String(body.linkId || "");
+      if (!name) return json(400, { error: "Enter a profile name." });
+      if (!links.some(link => link.id === linkId)) return json(400, { error: "Choose an existing link for this profile." });
+      profiles.push({ id: newId(), name, linkId, completed: false, createdAt: new Date().toISOString() });
+      await redis.set("rotator:profiles", profiles);
+    } else if (action === "complete-profile") {
+      const profile = profiles.find(item => item.id === body.id);
+      if (!profile) return json(404, { error: "Profile not found." });
+      if (!profile.completed) {
+        profile.completed = true;
+        profile.completedAt = new Date().toISOString();
+        await redis.incrby("rotator:claimed_all_time", 50);
+        if (settings.autoExcludeCompleted) {
+          const linked = links.find(link => link.id === profile.linkId);
+          if (linked) linked.enabled = false;
+        }
+        await redis.set("rotator:profiles", profiles);
+        await redis.set("rotator:links", links);
+      }
+    } else if (action === "profile-settings") {
+      settings.autoExcludeCompleted = Boolean(body.autoExcludeCompleted);
+      if (settings.autoExcludeCompleted) {
+        const completedLinkIds = new Set(profiles.filter(profile => profile.completed).map(profile => profile.linkId));
+        for (const link of links) if (completedLinkIds.has(link.id)) link.enabled = false;
+      }
+      await redis.set("rotator:profile_settings", settings);
+      await redis.set("rotator:links", links);
     } else {
       return json(400, { error: "Unknown action." });
     }
 
     await redis.set("rotator:links", links);
+    if (action !== "add-profile") await redis.set("rotator:profiles", profiles);
     return json(200, { ok: true });
   } catch (error) {
     console.error("Admin API failed:", error.message);
