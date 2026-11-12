@@ -1,41 +1,167 @@
-const $=id=>document.getElementById(id);let links=[],profiles=[],selected=new Set(),api={};
-const etDay=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-const fmt=n=>Number(n||0).toLocaleString();
-async function req(url,options={}){const r=await fetch(url,{credentials:"same-origin",headers:{"content-type":"application/json"},...options});let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||"Request failed");return d}
-function notify(s,id="notice"){const el=$(id);if(el)el.textContent=s||""}
-function tab(id){document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active-view",v.id===id))}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>tab(b.dataset.tab)));
-document.querySelector(".jump-daily").addEventListener("click",()=>tab("daily-view"));
-function groups(){const values=[...new Set(profiles.map(p=>p.group||"Ungrouped"))];for(const id of ["group-filter","bulk-group"]){const el=$(id),old=el.value;el.replaceChildren(new Option(id==="group-filter"?"All groups":"Ungrouped",""));values.forEach(v=>el.add(new Option(v,v)));if(values.includes(old))el.value=old;}}
-function render(){const today=etDay(), done=profiles.filter(p=>p.doneDate===today).length; $("active-profiles").textContent=fmt(profiles.filter(p=>p.enabled!==false).length);$("loaded-sub").textContent=fmt(profiles.length)+" profiles loaded";$("completed-today").textContent=done+" / "+profiles.length;$("claims-count").textContent=fmt(profiles.filter(p=>p.claimed===true).length);$("claimed-total").textContent="Controllers marked claimed";$("total").textContent=fmt(api.total);$("total-sub").textContent=fmt(api.total)+" total redirect assignments";$("last-activity").textContent=api.lastActivity?new Date(Number(api.lastActivity)).toLocaleString(): "No redirect activity recorded yet.";$("redirects-all").textContent=fmt(api.total);$("redirects-today").textContent=fmt(api.redirectsToday||0);$("today-date").textContent="New York date · "+today;
-const lf=$("profile-link"),old=lf.value;lf.replaceChildren(new Option("No link assigned",""));links.forEach(lf0=>lf.add(new Option(lf0.label,lf0.id)));lf.value=old;
-groups();const search=$("search-profile").value.toLowerCase(),gf=$("group-filter").value,sf=$("status-filter").value;
-const shown=profiles.filter(p=>{const doneNow=p.doneDate===today,link=links.find(l=>l.id===p.linkId);return(!search||(String(p.name).toLowerCase().includes(search)||(link?.url||"").toLowerCase().includes(search)))&&(!gf||(p.group||"Ungrouped")===gf)&&(sf==="all"||(sf==="active"&&p.enabled!==false)||(sf==="disabled"&&p.enabled===false)||(sf==="done"&&doneNow)||(sf==="notdone"&&!doneNow));});
-$("shown-count").textContent=shown.length+" shown";$("selected-count").textContent=selected.size+" selected";
-const body=$("profile-rows");body.replaceChildren();shown.forEach(p=>{const tr=document.createElement("tr"),done=p.doneDate===today,link=links.find(l=>l.id===p.linkId);const cells=[document.createElement("td"),document.createElement("td"),document.createElement("td"),document.createElement("td"),document.createElement("td"),document.createElement("td"),document.createElement("td"),document.createElement("td"),document.createElement("td")];
-const check=document.createElement("input");check.type="checkbox";check.className="done-check";check.checked=done;check.title="Mark done today";check.addEventListener("change",()=>mutate({action:"daily-done",id:p.id,done:check.checked}));cells[0].append(check);
-cells[1].innerHTML='<div class="profile-id"></div><div class="profile-sub"></div>';cells[1].querySelector(".profile-id").textContent="#"+p.name;cells[1].querySelector(".profile-sub").textContent=done?"↳ Marked done today":"↳ Not marked today";
-const g=document.createElement("select");g.className="row-group";["Ungrouped",...new Set(profiles.map(x=>x.group||"Ungrouped"))].forEach(v=>g.add(new Option(v,v)));g.value=p.group||"Ungrouped";g.addEventListener("change",()=>mutate({action:"update-profile",id:p.id,group:g.value}));cells[2].append(g);
-const status=document.createElement("button");status.className="secondary";status.textContent=p.enabled===false?"Paused":"Active";status.addEventListener("click",()=>mutate({action:"update-profile",id:p.id,enabled:p.enabled===false}));cells[3].append(status);
-const points=document.createElement("span");points.textContent=fmt(p.points||0);cells[4].append(points);
-const claim=document.createElement("input");claim.type="checkbox";claim.className="done-check";claim.checked=p.claimed===true;claim.title="Controller claimed";claim.setAttribute("aria-label","Controller claimed for profile #"+p.name);claim.addEventListener("change",()=>mutate({action:"set-claimed",id:p.id,claimed:claim.checked}));cells[5].append(claim);
-cells[6].textContent=(link?fmt(link.countToday||0):"0")+" / "+fmt(link?.count||0);cells[7].textContent=p.lastUsed?new Date(p.lastUsed).toLocaleString():"—";
-const sel=document.createElement("input");sel.type="checkbox";sel.checked=selected.has(p.id);sel.addEventListener("change",()=>{sel.checked?selected.add(p.id):selected.delete(p.id);$("selected-count").textContent=selected.size+" selected"});cells[8].append(sel);cells.forEach(c=>tr.append(c));body.append(tr)});
-const linkRoot=$("links");linkRoot.replaceChildren();links.forEach(l=>{const card=document.createElement("div");card.className="link-card";const info=document.createElement("div"),url=document.createElement("div");url.className="link-url";url.textContent=l.url;const label=document.createElement("strong");label.textContent=l.label;info.append(label,url);const actions=document.createElement("div");actions.className="link-actions";const toggle=document.createElement("button");toggle.className="secondary";toggle.textContent=l.enabled?"Active":"Paused";toggle.addEventListener("click",()=>mutate({action:"toggle",id:l.id,enabled:!l.enabled}));const edit=document.createElement("button");edit.className="secondary";edit.textContent="Edit link";edit.addEventListener("click",()=>{const value=prompt("Destination URL",l.url);if(value)mutate({action:"update",id:l.id,label:l.label,url:value})});actions.append(toggle,edit);card.append(info,actions);linkRoot.append(card)});
+const $ = id => document.getElementById(id);
+const loginPanel = $("login-panel"), appPanel = $("app-panel");
+let links = [];
+
+function bulkMessage(text, isError=false) { const el = $("bulk-status"); el.textContent = text || ""; el.style.color = isError ? "#b91c1c" : "#166534"; }
+function message(text, isError=false) {
+  const el = $("notice");
+  el.textContent = text || "";
+  el.style.color = isError ? "#b91c1c" : "#166534";
 }
-async function load(){try{api=await req("/.netlify/functions/admin-api");links=api.links||[];profiles=api.profiles||[];if(!api.profiles)profiles=[];$("login-panel").classList.add("hidden");$("app-panel").classList.remove("hidden");$("logout").classList.remove("hidden");render()}catch(e){$("login-panel").classList.remove("hidden");$("app-panel").classList.add("hidden");}}
-async function mutate(data){try{await req("/.netlify/functions/admin-api",{method:"POST",body:JSON.stringify(data)});await load()}catch(e){alert(e.message)}}
-$("login-form").addEventListener("submit",async e=>{e.preventDefault();try{await req("/.netlify/functions/admin-login",{method:"POST",body:JSON.stringify({password:$("password").value})});$("password").value="";await load()}catch(err){$("login-error").textContent=err.message}});
-$("logout").addEventListener("click",async()=>{await req("/.netlify/functions/admin-logout",{method:"POST",body:"{}"});location.reload()});
-$("refresh").addEventListener("click",load);$("show-add-profile").addEventListener("click",()=>$("profile-form").classList.toggle("hidden"));
-$("profile-form").addEventListener("submit",async e=>{e.preventDefault();await mutate({action:"add-profile",name:$("profile-name").value,group:$("profile-group").value,linkId:$("profile-link").value});e.target.reset()});
-$("add-form").addEventListener("submit",async e=>{e.preventDefault();await mutate({action:"add",label:$("new-label").value,url:$("new-url").value});e.target.reset()});
-$("search-profile").addEventListener("input",render);$("group-filter").addEventListener("change",render);$("status-filter").addEventListener("change",render);
-$("select-visible").addEventListener("change",e=>{document.querySelectorAll("#profile-rows tr").forEach((tr,i)=>{const p=profiles[i];if(p)e.target.checked?selected.add(p.id):selected.delete(p.id)});render()});
-$("enable-selected").addEventListener("click",()=>mutate({action:"bulk-profile",ids:[...selected],enabled:true}));$("disable-selected").addEventListener("click",()=>mutate({action:"bulk-profile",ids:[...selected],enabled:false}));$("assign-group").addEventListener("click",()=>mutate({action:"bulk-group",ids:[...selected],group:$("bulk-group").value}));
-$("import-file").addEventListener("change",async e=>{const f=e.target.files[0];if(f)$("import-text").value=await f.text()});
-$("import-submit").addEventListener("click",async()=>{const names=$("import-text").value.split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean);if(!names.length)return notify("Paste profile numbers first.","import-status");let added=0;for(const name of names){try{await req("/.netlify/functions/admin-api",{method:"POST",body:JSON.stringify({action:"add-profile",name})});added++}catch{}}$("import-text").value="";notify("Imported "+added+" profile(s).","import-status");await load()});
-$("export-csv").addEventListener("click",()=>{const rows=[["Profile","Group","Enabled","Done today","Claimed","Points"],...profiles.map(p=>[p.name,p.group||"Ungrouped",p.enabled!==false,p.doneDate===etDay(),!!p.claimed,p.points||0])];download("profiles.csv",rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(",")).join("\n"),"text/csv")});
-$("backup-json").addEventListener("click",()=>download("geelark-backup.json",JSON.stringify({profiles,links,exportedAt:new Date().toISOString()},null,2),"application/json"));
-function download(name,data,type){const a=document.createElement("a"),url=URL.createObjectURL(new Blob([data],{type}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
-setInterval(()=>$("clock").textContent=new Date().toLocaleTimeString("en-US",{timeZone:"America/New_York"}),1000);load();
+async function request(url, options={}) {
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    headers: { "content-type": "application/json", ...(options.headers || {}) },
+    ...options
+  });
+  let data = {};
+  try { data = await response.json(); } catch {}
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  return data;
+}
+function showApp() {
+  loginPanel.classList.add("hidden");
+  appPanel.classList.remove("hidden");
+  $("logout").classList.remove("hidden");
+}
+function showLogin() {
+  appPanel.classList.add("hidden");
+  loginPanel.classList.remove("hidden");
+  $("logout").classList.add("hidden");
+}
+async function load() {
+  try {
+    const data = await request("/.netlify/functions/admin-api", { method: "GET" });
+    links = data.links || [];
+    $("total").textContent = Number(data.total || 0).toLocaleString();
+    $("active-count").textContent = links.filter(x => x.enabled).length;
+    $("all-count").textContent = links.length;
+    renderLinks();
+    showApp();
+  } catch (e) {
+    if (/sign in/i.test(e.message)) showLogin();
+    else message(e.message, true);
+  }
+}
+function renderLinks() {
+  const root = $("links");
+  root.replaceChildren();
+  $("empty").classList.toggle("hidden", links.length !== 0);
+  for (const link of links) {
+    const card = document.createElement("article");
+    card.className = "link-card";
+    const head = document.createElement("div"); head.className = "link-head";
+    const info = document.createElement("div");
+    const title = document.createElement("div"); title.className = "link-title";
+    title.append(document.createTextNode(link.label));
+    const pill = document.createElement("span"); pill.className = "pill" + (link.enabled ? "" : " off"); pill.textContent = link.enabled ? "ENABLED" : "DISABLED"; title.append(pill);
+    const url = document.createElement("div"); url.className = "link-url"; url.textContent = link.url;
+    info.append(title,url);
+    const countWrap = document.createElement("div");
+    const count = document.createElement("div"); count.className = "count"; count.textContent = Number(link.count||0).toLocaleString();
+    const countLabel = document.createElement("div"); countLabel.className = "count-label"; countLabel.textContent = "redirects";
+    countWrap.append(count,countLabel); head.append(info,countWrap); card.append(head);
+
+    const edit = document.createElement("div"); edit.className = "edit-grid hidden";
+    const labelInput = document.createElement("input"); labelInput.value = link.label; labelInput.maxLength = 100; labelInput.setAttribute("aria-label","Link label");
+    const urlInput = document.createElement("input"); urlInput.value = link.url; urlInput.type = "url"; urlInput.setAttribute("aria-label","Destination URL");
+    const actions = document.createElement("div"); actions.className = "link-actions wide";
+    const save = makeButton("Save changes", "", async () => {
+      await mutate({ action:"update", id:link.id, label:labelInput.value, url:urlInput.value }, "Link updated.");
+      edit.classList.add("hidden");
+    });
+    const cancel = makeButton("Cancel", "secondary", () => edit.classList.add("hidden"));
+    actions.append(save,cancel); edit.append(labelInput,urlInput,actions); card.append(edit);
+
+    const buttons = document.createElement("div"); buttons.className = "link-actions";
+    buttons.append(
+      makeButton("Edit", "secondary", () => edit.classList.toggle("hidden")),
+      makeButton(link.enabled ? "Disable" : "Enable", "secondary", () => mutate({action:"toggle",id:link.id,enabled:!link.enabled}, link.enabled ? "Link disabled." : "Link enabled.")),
+      makeButton("Delete", "danger", () => {
+        if (confirm(`Delete "${link.label}"? Its historical count will remain in total redirects.`))
+          mutate({action:"delete",id:link.id}, "Link deleted.");
+      })
+    );
+    card.append(buttons); root.append(card);
+  }
+}
+function makeButton(label, cls, callback) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = label; if (cls) b.className = cls;
+  b.addEventListener("click", async () => {
+    b.disabled = true;
+    try { await callback(); } catch(e) { message(e.message, true); }
+    finally { b.disabled = false; }
+  });
+  return b;
+}
+async function mutate(body, success) {
+  await request("/.netlify/functions/admin-api", { method:"POST", body:JSON.stringify(body) });
+  message(success); await load();
+}
+$("login-form").addEventListener("submit", async e => {
+  e.preventDefault(); $("login-error").textContent = "";
+  const button = e.currentTarget.querySelector("button"); button.disabled = true;
+  try {
+    await request("/.netlify/functions/admin-login", { method:"POST", body:JSON.stringify({password:$("password").value}) });
+    $("password").value = ""; message(""); await load();
+  } catch(err) { $("login-error").textContent = err.message; }
+  finally { button.disabled = false; }
+});
+$("add-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  try {
+    await mutate({action:"add",label:$("new-label").value,url:$("new-url").value},"Link added.");
+    e.currentTarget.reset();
+  } catch(err) { message(err.message,true); }
+});
+
+function parseBulkLinks(raw) {
+  return raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
+    const separator = line.indexOf("|");
+    if (separator >= 0) return { label: line.slice(0, separator).trim(), url: line.slice(separator + 1).trim() };
+    return { label: `Link ${links.length + index + 1}`, url: line };
+  });
+}
+$("bulk-file").addEventListener("change", async e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    $("bulk-text").value = await file.text();
+    bulkMessage(`Loaded ${file.name}. Review the links, then select Add all links.`);
+  } catch { bulkMessage("Could not read that file.", true); }
+});
+$("bulk-clear").addEventListener("click", () => {
+  $("bulk-text").value = ""; $("bulk-file").value = ""; bulkMessage("");
+});
+$("bulk-add").addEventListener("click", async () => {
+  const items = parseBulkLinks($("bulk-text").value);
+  if (!items.length) { bulkMessage("Paste links or upload a .txt file first.", true); return; }
+  const invalid = items.filter(item => {
+    try { const u = new URL(item.url); return u.protocol !== "https:" || !u.hostname || !item.label; }
+    catch { return true; }
+  });
+  if (invalid.length) {
+    bulkMessage(`Fix ${invalid.length} invalid line(s). Each line must be an HTTPS URL, or Label | HTTPS URL.`, true);
+    return;
+  }
+  const button = $("bulk-add"); button.disabled = true;
+  let added = 0;
+  try {
+    for (const item of items) {
+      await request("/.netlify/functions/admin-api", {
+        method: "POST", body: JSON.stringify({ action: "add", label: item.label, url: item.url })
+      });
+      added++; bulkMessage(`Adding links… ${added} of ${items.length}`);
+    }
+    $("bulk-text").value = ""; $("bulk-file").value = "";
+    await load(); bulkMessage(`Successfully added ${added} link(s).`);
+  } catch (err) {
+    await load(); bulkMessage(`Added ${added} of ${items.length} link(s). Stopped because: ${err.message}`, true);
+  } finally { button.disabled = false; }
+});
+$("refresh").addEventListener("click", load);
+$("logout").addEventListener("click", async () => {
+  try { await request("/.netlify/functions/admin-logout", {method:"POST",body:"{}"}); } catch {}
+  showLogin(); message("Signed out.");
+});
+load();
