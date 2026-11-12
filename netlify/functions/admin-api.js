@@ -17,14 +17,17 @@ exports.handler = async function (event) {
     const profiles = (await redis.get("rotator:profiles")) || [];
     const settings = (await redis.get("rotator:profile_settings")) || { autoExcludeCompleted: false };
     const claimedAllTime = Number(await redis.get("rotator:claimed_all_time") || 0);
+    const dailyCounts = await redis.hgetall("rotator:daily_counts") || {};
+    const todayET = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const redirectsToday = Object.entries(dailyCounts).filter(([key]) => key.startsWith(todayET + ":")).reduce((sum, [, value]) => sum + Number(value || 0), 0);
 
     if (event.httpMethod === "GET") {
       const today = new Date().toISOString().slice(0, 10);
       return json(200, {
-        links: links.map(link => ({ ...link, count: Number(counts[link.id] || 0) })),
-        total, profiles, settings, claimedAllTime,
-        activeProfiles: profiles.filter(profile => !profile.completed).length,
-        completedToday: profiles.filter(profile => profile.completed && profile.completedAt && utcDay(profile.completedAt) === today).length,
+        links: links.map(link => ({ ...link, count: Number(counts[link.id] || 0), countToday: Number(dailyCounts[todayET + ":" + link.id] || 0) })),
+        total, profiles, settings, claimedAllTime, redirectsToday,
+        activeProfiles: profiles.filter(profile => profile.enabled !== false).length,
+        completedToday: profiles.filter(profile => profile.doneDate === todayET).length,
         lastActivity: await redis.get("rotator:last_activity") || null
       });
     }
