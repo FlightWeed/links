@@ -78,7 +78,12 @@ exports.handler = async function (event) {
       }
     } else if (action === "profile-settings") {
       settings.autoExcludeCompleted = Boolean(body.autoExcludeCompleted);
+      if (settings.autoExcludeCompleted) {
+        const completedLinkIds = new Set(profiles.filter(profile => profile.completed).map(profile => profile.linkId));
+        for (const link of links) if (completedLinkIds.has(link.id)) link.enabled = false;
+      }
       await redis.set("rotator:profile_settings", settings);
+      await redis.set("rotator:links", links);
     } else {
       return json(400, { error: "Unknown action." });
     }
