@@ -58,9 +58,39 @@ exports.handler = async function (event) {
     } else if (action === "add-profile") {
       const name = String(body.name || "").trim().slice(0, 100);
       const linkId = String(body.linkId || "");
+      const group = String(body.group || "Ungrouped").trim().slice(0,80) || "Ungrouped";
       if (!name) return json(400, { error: "Enter a profile name." });
-      if (!links.some(link => link.id === linkId)) return json(400, { error: "Choose an existing link for this profile." });
-      profiles.push({ id: newId(), name, linkId, completed: false, createdAt: new Date().toISOString() });
+      if (linkId && !links.some(link => link.id === linkId)) return json(400, { error: "Choose an existing link for this profile." });
+      if (profiles.some(profile => String(profile.name).toLowerCase() === name.toLowerCase())) return json(409, { error: "That profile already exists." });
+      profiles.push({ id: newId(), name, linkId, group, enabled: true, points: 0, claimed: false, doneDate: null, createdAt: new Date().toISOString() });
+      await redis.set("rotator:profiles", profiles);
+    } else if (action === "daily-done") {
+      const profile = profiles.find(item => item.id === body.id);
+      if (!profile) return json(404, { error: "Profile not found." });
+      const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+      profile.doneDate = body.done ? today : null;
+      await redis.set("rotator:profiles", profiles);
+    } else if (action === "claim-profile") {
+      const profile = profiles.find(item => item.id === body.id);
+      if (!profile) return json(404, { error: "Profile not found." });
+      if (!profile.claimed) {
+        profile.claimed = true;
+        profile.claimedAt = new Date().toISOString();
+        await redis.incrby("rotator:claimed_all_time", 50);
+        await redis.set("rotator:profiles", profiles);
+      }
+    } else if (action === "update-profile") {
+      const profile = profiles.find(item => item.id === body.id);
+      if (!profile) return json(404, { error: "Profile not found." });
+      if (body.group !== undefined) profile.group = String(body.group || "Ungrouped").trim().slice(0, 80) || "Ungrouped";
+      if (body.enabled !== undefined) profile.enabled = Boolean(body.enabled);
+      await redis.set("rotator:profiles", profiles);
+    } else if (action === "bulk-profile" || action === "bulk-group") {
+      const ids = new Set(Array.isArray(body.ids) ? body.ids : []);
+      for (const profile of profiles) if (ids.has(profile.id)) {
+        if (action === "bulk-profile") profile.enabled = Boolean(body.enabled);
+        else profile.group = String(body.group || "Ungrouped").trim().slice(0, 80) || "Ungrouped";
+      }
       await redis.set("rotator:profiles", profiles);
     } else if (action === "complete-profile") {
       const profile = profiles.find(item => item.id === body.id);
