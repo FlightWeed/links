@@ -98,7 +98,6 @@ exports.handler = async function (event) {
       if (!profile.completed) {
         profile.completed = true;
         profile.completedAt = new Date().toISOString();
-        await redis.incrby("rotator:claimed_all_time", 50);
         if (settings.autoExcludeCompleted) {
           const linked = links.find(link => link.id === profile.linkId);
           if (linked) linked.enabled = false;
