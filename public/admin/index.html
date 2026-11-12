@@ -10,7 +10,7 @@
 <body>
   <main class="shell">
     <header class="top">
-      <div><p class="eyebrow">CONTROL PANEL</p><h1>Link Rotator</h1><p class="muted">Manage destinations and monitor redirect traffic.</p></div>
+      <div><p class="eyebrow">CONTROL PANEL</p><h1>Link Rotator</h1><p class="muted">Manage destinations, track profiles and monitor activity.</p></div>
       <button id="logout" class="secondary hidden">Sign out</button>
     </header>
 
@@ -30,7 +30,31 @@
         <article class="stat"><span class="muted">Total redirects</span><strong id="total">0</strong></article>
         <article class="stat"><span class="muted">Active links</span><strong id="active-count">0</strong></article>
         <article class="stat"><span class="muted">All links</span><strong id="all-count">0</strong></article>
+        <article class="stat"><span class="muted">Active profiles</span><strong id="active-profiles">0</strong></article>
+        <article class="stat"><span class="muted">Completed today</span><strong id="completed-today">0</strong></article>
+        <article class="stat"><span class="muted">Total claimed all time</span><strong id="claimed-total">$0</strong></article>
       </div>
+
+      <section class="panel">
+        <div class="section-heading"><div><h2>Profile tracker</h2><p class="muted">Track profiles through completion. Each profile can only be claimed once.</p></div></div>
+        <form id="profile-form" class="add-form profile-form">
+          <div><label for="profile-name">Profile name</label><input id="profile-name" maxlength="100" placeholder="Profile username" required></div>
+          <div><label for="profile-link">Associated rotation link</label><select id="profile-link" required><option value="">Choose a link</option></select></div>
+          <button type="submit">Add profile</button>
+        </form>
+        <div class="setting-row">
+          <div><strong>Auto-exclude completed profiles</strong><p class="muted">When enabled, completing a profile disables its associated link in rotation. The profile stays in history.</p></div>
+          <label class="switch"><input id="auto-exclude" type="checkbox"><span class="switch-ui"></span></label>
+        </div>
+        <p id="profile-notice" class="notice" role="status"></p>
+        <div id="profiles-empty" class="empty">No profiles added yet.</div>
+        <div id="profiles" class="profiles"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading"><div><h2>Latest redirect activity</h2><p class="muted">Most recent redirect recorded by the service.</p></div></div>
+        <p id="last-activity" class="muted">No redirect activity recorded yet.</p>
+      </section>
 
       <section class="panel">
         <div class="section-heading"><div><h2>Add a destination</h2><p class="muted">Paste a full HTTPS TikTok Pro URL.</p></div></div>
@@ -62,7 +86,7 @@ Campaign C | https://pro.tiktok.com/t/..."></textarea>
         <div id="empty" class="empty hidden">No links yet. Add your first destination above.</div>
         <div id="links" class="links"></div>
       </section>
-      <p class="footer muted">Counts reflect requests that reached this redirect service, not unique visitors or confirmed TikTok conversions.</p>
+      <p class="footer muted">Redirect counts measure requests reaching this service, not unique visitors or confirmed TikTok conversions. Claimed totals reflect profile completions you record here.</p>
     </section>
   </main>
   <script src="/admin/app.js" defer></script>
