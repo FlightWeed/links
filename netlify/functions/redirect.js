@@ -16,6 +16,7 @@ local index = (cursor % #enabled) + 1
 local chosen = enabled[index]
 redis.call('SET', KEYS[2], tostring(cursor + 1))
 redis.call('HINCRBY', KEYS[3], chosen.id, 1)
+redis.call('HINCRBY', KEYS[6], ARGV[1] .. ':' .. chosen.id, 1)
 redis.call('INCR', KEYS[4])
 redis.call('SET', KEYS[5], tostring(os.time() * 1000))
 return {chosen.url, chosen.id}
@@ -26,8 +27,8 @@ exports.handler = async function () {
     const redis = getRedis();
     const result = await redis.eval(
       ROTATE_SCRIPT,
-      ["rotator:links", "rotator:cursor", "rotator:link_counts", "rotator:total", "rotator:last_activity"],
-      []
+      ["rotator:links", "rotator:cursor", "rotator:link_counts", "rotator:total", "rotator:last_activity", "rotator:daily_counts"],
+      [new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())]
     );
     if (!result || !result[0]) {
       return { statusCode: 503, headers: { "cache-control": "no-store" }, body: "No active links are configured yet." };
