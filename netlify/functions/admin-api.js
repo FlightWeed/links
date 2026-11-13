@@ -25,7 +25,7 @@ exports.handler=async function(event){
    total,controllersClaimed,dailyControllerClaims,activeLinks:links.filter(x=>x.enabled).length,
    completedToday:links.filter(x=>x.doneDate===today).length,lastActivity:await redis.get("rotator:last_activity")||null,lastRedirect:await redis.get("rotator:last_redirect")||null});
   let body;try{body=JSON.parse(event.body||"{}")}catch{return json(400,{error:"Invalid JSON."})}
-  const action=body.action;
+  const action=body.action;let addedCount=0;
   if(action==="clear-all"){
    const removed=links.length;
    await redis.set("rotator:links",[]);
@@ -37,7 +37,7 @@ exports.handler=async function(event){
    for(const item of items){const url=String(item.url||"").trim(),label=String(item.label||"").trim().slice(0,100);
     if(!validHttpsUrl(url)||!label)continue;
     links.push({id:newId(),label,url,enabled:true,group:String(item.group||"Ungrouped").trim()||"Ungrouped",controllersClaimed:0,redirectsTotal:0,redirectsToday:0,doneDate:null});
-    added++;
+    added++;addedCount++;
    }
    if(!added)return json(400,{error:"No valid HTTPS links were provided."});
   }else if(action==="update"){
@@ -63,6 +63,6 @@ exports.handler=async function(event){
     if(body.group!==undefined)l.group=String(body.group||"Ungrouped").trim()||"Ungrouped";
    }
   }else return json(400,{error:"Unknown action."});
-  await redis.set("rotator:links",links);return json(200,{ok:true});
+  await redis.set("rotator:links",links);return json(200,{ok:true,...(action==="bulk-add"?{added:addedCount}: {})});
  }catch(e){console.error("Admin API failed:",e.message);return json(503,{error:"Storage service unavailable."})}
 };
