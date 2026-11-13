@@ -29,11 +29,15 @@ exports.handler = async function (event) {
   try {
     const redis = getRedis();
     const links = (await redis.get("rotator:links")) || [];
-    let profiles = ((await redis.get("rotator:profiles")) || []).map(cleanProfile);
+    const today = todayET();
+    let profiles = ((await redis.get("rotator:profiles")) || []).map(profile => {
+      const clean = cleanProfile(profile);
+      if (clean.redirectsDate !== today) clean.redirectsToday = 0;
+      return clean;
+    });
     const counts = await redis.hgetall("rotator:link_counts") || {};
     const dailyCounts = await redis.hgetall("rotator:daily_counts") || {};
     const total = Number(await redis.get("rotator:total") || 0);
-    const today = todayET();
     const dailyControllerClaims = Number(await redis.get("rotator:daily_controller_claims:" + today) || 0);
     const controllersClaimed = profiles.reduce((sum, profile) => sum + profile.controllersClaimed, 0);
 
