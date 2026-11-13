@@ -132,7 +132,7 @@ function renderProfiles() {
     const metrics = document.createElement("div"); metrics.className="profile-metrics";
     for (const [label,value] of [["Redirects today",p.redirectsToday||0],["Lifetime redirects",p.redirectsTotal||0],["Controllers claimed",p.controllersClaimed||0],["Last used",p.lastUsed?new Date(p.lastUsed).toLocaleString():"Never"]]) {
       const m=document.createElement("div"), strong=document.createElement("strong"), span=document.createElement("span");
-      strong.textContent=Number(value).toLocaleString(); span.textContent=label; m.append(strong,span); metrics.append(m);
+      strong.textContent=label==="Last used"?String(value):Number(value).toLocaleString(); span.textContent=label; m.append(strong,span); metrics.append(m);
     }
     card.append(metrics);
 
