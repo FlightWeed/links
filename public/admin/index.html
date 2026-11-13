@@ -30,15 +30,14 @@
         <article class="stat"><span class="muted">Total redirects</span><strong id="total">0</strong></article>
         <article class="stat"><span class="muted">Active links</span><strong id="active-count">0</strong></article>
         <article class="stat"><span class="muted">All links</span><strong id="all-count">0</strong></article>
-        <article class="stat"><span class="muted">Active GeeLark profiles</span><strong id="active-profiles">0</strong></article>
-        <article class="stat"><span class="muted">Profiles loaded</span><strong id="profile-count">0</strong></article>
+        
         <article class="stat"><span class="muted">Completed today</span><strong id="completed-today">0</strong></article>
         <article class="stat"><span class="muted">Controllers claimed</span><strong id="controllers-total">0</strong></article>
         <article class="stat"><span class="muted">Controllers claimed today</span><strong id="controllers-today">0</strong></article>
       </div>
 
       <section class="panel">
-        <div class="section-heading"><div><h2>Add a destination</h2><p class="muted">Paste a full HTTPS TikTok Pro URL.</p></div></div>
+        <div class="section-heading"><div><h2>Add a TikTok Pro link</h2><p class="muted">Each TikTok Pro link is managed as one profile.</p></div></div>
         <form id="add-form" class="add-form">
           <div><label for="new-label">Label</label><input id="new-label" maxlength="100" placeholder="Campaign A" required></div>
           <div class="url-field"><label for="new-url">Destination URL</label><input id="new-url" type="url" placeholder="https://…" required></div>
@@ -48,11 +47,11 @@
       </section>
 
       <section class="panel">
-        <div class="section-heading"><div><h2>Bulk add links</h2><p class="muted">Paste one HTTPS URL per line, or use <code>Label | URL</code> to set custom labels. You can also upload a .txt file.</p></div></div>
+        <div class="section-heading"><div><h2>Bulk add links</h2><p class="muted">Paste one link per line, or use <code>Profile / Label | TikTok Pro URL | Group</code>. You can also upload a .txt file.</p></div></div>
         <label for="bulk-text">Links</label>
         <textarea id="bulk-text" rows="7" placeholder="https://pro.tiktok.com/t/...
 https://pro.tiktok.com/t/...
-Campaign C | https://pro.tiktok.com/t/..."></textarea>
+Campaign C | https://pro.tiktok.com/t/... | Group A"></textarea>
         <div class="link-actions bulk-actions">
           <label class="file-picker" for="bulk-file">Choose .txt file</label>
           <input id="bulk-file" type="file" accept=".txt,text/plain" class="hidden">
@@ -63,27 +62,16 @@ Campaign C | https://pro.tiktok.com/t/..."></textarea>
       </section>
 
       <section class="panel">
-        <div class="section-heading"><div><h2>Your links</h2><p class="muted">Enabled links participate in rotation in the order shown.</p></div><button id="refresh" class="secondary">Refresh</button></div>
-        <div id="empty" class="empty hidden">No links yet. Add your first destination above.</div>
+        <div class="section-heading"><div><h2>Your TikTok Pro links</h2><p class="muted">Each link row contains its profile settings, activity, and controller tracking.</p></div><div class="link-actions"><button id="export-csv" class="secondary" type="button">Export CSV</button><button id="backup-json" class="secondary" type="button">JSON backup</button><button id="refresh" class="secondary">Refresh</button></div></div>
+        <div id="empty" class="empty hidden">No TikTok Pro links yet. Add your first link above.</div>
         <div id="links" class="links"></div>
       </section>
 
-      <section class="panel" id="geelark-panel">
-        <div class="section-heading">
-          <div><h2>GeeLark Profiles</h2><p class="muted">Manage profiles, redirect assignments, daily completion, and controller counts.</p></div>
-          <div class="link-actions"><button id="export-csv" class="secondary" type="button">Export CSV</button><button id="backup-json" class="secondary" type="button">JSON backup</button></div>
-        </div>
-        <p id="latest-redirect" class="muted latest-redirect">Latest redirect: No redirect recorded yet.</p>
-        <div class="profile-add">
-          <label for="profile-bulk">Add profiles in bulk</label>
-          <textarea id="profile-bulk" rows="4" placeholder="Profile 001 | https://www.tiktok.com/@account&#10;Profile 002 | https://www.tiktok.com/@account&#10;Format: Profile Number | TikTok URL | Group"></textarea>
-          <div class="link-actions"><button id="add-profiles" type="button">Add profiles</button><button id="clear-profiles" type="button" class="secondary">Clear</button></div>
-          <p id="profile-notice" class="notice" role="status"></p>
-        </div>
-        <div class="profile-toolbar">
-          <input id="profile-search" type="search" placeholder="Search profile number or TikTok URL" aria-label="Search profiles">
-          <select id="group-filter" aria-label="Filter by group"><option value="">All groups</option></select>
-          <select id="status-filter" aria-label="Filter by status"><option value="">All profiles</option><option value="active">Active</option><option value="disabled">Disabled</option><option value="completed">Completed today</option><option value="pending">Not completed today</option></select>
+      <section class="panel">
+        <div class="link-toolbar">
+          <input id="link-search" type="search" placeholder="Search link label, TikTok URL, or group" aria-label="Search TikTok Pro links">
+          <select id="link-group-filter" aria-label="Filter by group"><option value="">All groups</option></select>
+          <select id="link-status-filter" aria-label="Filter by status"><option value="">All links</option><option value="active">Enabled</option><option value="disabled">Disabled</option><option value="completed">Completed today</option><option value="pending">Not completed today</option></select>
         </div>
         <div class="profile-bulk-actions">
           <label class="select-all"><input id="select-visible" type="checkbox"> Select visible</label>
@@ -92,9 +80,7 @@ Campaign C | https://pro.tiktok.com/t/..."></textarea>
           <input id="bulk-group-name" type="text" placeholder="Group name">
           <button id="assign-group" type="button" class="secondary">Assign group</button>
         </div>
-        <div id="profiles-empty" class="empty">No GeeLark profiles loaded yet.</div>
-        <div id="profiles-list" class="profiles-list"></div>
-        <p class="footer muted">Daily completion resets automatically when the Eastern Time calendar date changes. Redirect assignment counts update when a visitor reaches the redirect service.</p>
+        <p id="latest-redirect" class="muted latest-redirect">Latest redirect: No redirect recorded yet.</p>
       </section>
       <p class="footer muted">Counts reflect requests that reached this redirect service, not unique visitors or confirmed TikTok conversions.</p>
     </section>
