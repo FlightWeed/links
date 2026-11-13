@@ -6,8 +6,9 @@ function todayET() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
 function cleanProfile(profile) {
+  const { points, claimed, completed, completedAt, ...stored } = profile;
   return {
-    ...profile,
+    ...stored,
     profileNumber: String(profile.profileNumber || profile.name || "").trim(),
     name: String(profile.name || profile.profileNumber || "").trim(),
     tiktokUrl: String(profile.tiktokUrl || ""),
