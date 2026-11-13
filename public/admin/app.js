@@ -39,6 +39,11 @@ async function load() {
     $("completed-today").textContent = Number(data.completedToday || 0).toLocaleString();
     $("controllers-total").textContent = Number(data.controllersClaimed || 0).toLocaleString();
     $("controllers-today").textContent = Number(data.dailyControllerClaims || 0).toLocaleString();
+    const latest = data.lastRedirect;
+    const latestLink = latest && links.find(link => link.id === latest.linkId);
+    $("latest-redirect").textContent = latest
+      ? `Latest redirect: ${latest.profileNumber || "No profile"} → ${latestLink ? latestLink.label : "Destination"} · ${new Date(latest.timestamp).toLocaleString()}`
+      : "Latest redirect: No redirect recorded yet.";
     renderLinks(); renderProfiles(); showApp();
   } catch (e) {
     if (/sign in/i.test(e.message)) showLogin(); else message(e.message, true);
@@ -125,7 +130,7 @@ function renderProfiles() {
 
     const url = document.createElement("div"); url.className="link-url profile-url"; url.textContent=p.tiktokUrl||"No TikTok URL added"; card.append(url);
     const metrics = document.createElement("div"); metrics.className="profile-metrics";
-    for (const [label,value] of [["Redirects today",p.redirectsToday||0],["Lifetime redirects",p.redirectsTotal||0],["Controllers claimed",p.controllersClaimed||0]]) {
+    for (const [label,value] of [["Redirects today",p.redirectsToday||0],["Lifetime redirects",p.redirectsTotal||0],["Controllers claimed",p.controllersClaimed||0],["Last used",p.lastUsed?new Date(p.lastUsed).toLocaleString():"Never"]]) {
       const m=document.createElement("div"), strong=document.createElement("strong"), span=document.createElement("span");
       strong.textContent=Number(value).toLocaleString(); span.textContent=label; m.append(strong,span); metrics.append(m);
     }
