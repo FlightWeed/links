@@ -210,9 +210,9 @@ $("select-visible").addEventListener("change",()=>{
   for(const p of filteredProfiles()){if($("select-visible").checked)selectedProfiles.add(p.id);else selectedProfiles.delete(p.id);}
   renderProfiles();
 });
-$("enable-selected").addEventListener("click",async()=>{if(!selectedProfiles.size)return message("Select at least one profile.",true);await mutate({action:"bulk-profile",ids:[...selectedProfiles],enabled:true},"Selected profiles enabled.");selectedProfiles.clear();});
-$("disable-selected").addEventListener("click",async()=>{if(!selectedProfiles.size)return message("Select at least one profile.",true);await mutate({action:"bulk-profile",ids:[...selectedProfiles],enabled:false},"Selected profiles disabled.");selectedProfiles.clear();});
-$("assign-group").addEventListener("click",async()=>{if(!selectedProfiles.size)return message("Select at least one profile.",true);const group=$("bulk-group-name").value.trim();if(!group)return message("Enter a group name.",true);await mutate({action:"bulk-group",ids:[...selectedProfiles],group},"Group assigned.");selectedProfiles.clear();$("bulk-group-name").value="";});
+$("enable-selected").addEventListener("click",async()=>{if(!selectedProfiles.size)return message("Select at least one profile.",true);const ids=[...selectedProfiles];selectedProfiles.clear();await mutate({action:"bulk-profile",ids,enabled:true},"Selected profiles enabled.");});
+$("disable-selected").addEventListener("click",async()=>{if(!selectedProfiles.size)return message("Select at least one profile.",true);const ids=[...selectedProfiles];selectedProfiles.clear();await mutate({action:"bulk-profile",ids,enabled:false},"Selected profiles disabled.");});
+$("assign-group").addEventListener("click",async()=>{if(!selectedProfiles.size)return message("Select at least one profile.",true);const group=$("bulk-group-name").value.trim();if(!group)return message("Enter a group name.",true);const ids=[...selectedProfiles];selectedProfiles.clear();await mutate({action:"bulk-group",ids,group},"Group assigned.");$("bulk-group-name").value="";});
 function downloadFile(name,content,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
 $("export-csv").addEventListener("click",()=>{
   const rows=[["Profile Number","TikTok URL","Group","Enabled","Completed Today","Controllers Claimed","Redirects Today","Lifetime Redirects","Last Used"]];
