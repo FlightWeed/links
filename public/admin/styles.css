@@ -41,3 +41,6 @@ label{display:block;font-size:13px;font-weight:650;margin-bottom:6px}input{width
 }
 
 .latest-redirect{font-size:13px;margin:0 0 16px;overflow-wrap:anywhere}
+
+.link-toolbar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(130px,180px) minmax(140px,190px);gap:10px;margin:18px 0}
+@media(max-width:650px){.link-toolbar{grid-template-columns:1fr}}
