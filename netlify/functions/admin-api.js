@@ -43,7 +43,8 @@ exports.handler = async function (event) {
         total, profiles, controllersClaimed, dailyControllerClaims,
         activeProfiles: profiles.filter(profile => profile.enabled).length,
         completedToday: profiles.filter(profile => profile.doneDate === today).length,
-        lastActivity: await redis.get("rotator:last_activity") || null
+        lastActivity: await redis.get("rotator:last_activity") || null,
+        lastRedirect: await redis.get("rotator:last_redirect") || null
       });
     }
 
