@@ -2,7 +2,23 @@ const crypto = require("node:crypto");
 const { getRedis, json, hasSession, requireSameOrigin, validHttpsUrl } = require("./_shared");
 
 function newId() { return crypto.randomBytes(9).toString("hex"); }
-function utcDay(value) { return new Date(value).toISOString().slice(0, 10); }
+function todayET() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+function cleanProfile(profile) {
+  return {
+    ...profile,
+    profileNumber: String(profile.profileNumber || profile.name || "").trim(),
+    name: String(profile.name || profile.profileNumber || "").trim(),
+    tiktokUrl: String(profile.tiktokUrl || ""),
+    group: String(profile.group || "Ungrouped"),
+    enabled: profile.enabled !== false,
+    controllersClaimed: Math.max(0, Number(profile.controllersClaimed ?? (profile.claimed ? 1 : 0)) || 0),
+    redirectsTotal: Math.max(0, Number(profile.redirectsTotal || 0)),
+    redirectsToday: Number(profile.redirectsToday || 0),
+    doneDate: profile.doneDate || null
+  };
+}
 
 exports.handler = async function (event) {
   if (!hasSession(event)) return json(401, { error: "Please sign in again." });
@@ -12,22 +28,20 @@ exports.handler = async function (event) {
   try {
     const redis = getRedis();
     const links = (await redis.get("rotator:links")) || [];
+    let profiles = ((await redis.get("rotator:profiles")) || []).map(cleanProfile);
     const counts = await redis.hgetall("rotator:link_counts") || {};
-    const total = Number(await redis.get("rotator:total") || 0);
-    const profiles = (await redis.get("rotator:profiles")) || [];
-    const settings = (await redis.get("rotator:profile_settings")) || { autoExcludeCompleted: false };
-    const claimedAllTime = profiles.filter(profile => profile.claimed === true).length;
     const dailyCounts = await redis.hgetall("rotator:daily_counts") || {};
-    const todayET = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-    const redirectsToday = Object.entries(dailyCounts).filter(([key]) => key.startsWith(todayET + ":")).reduce((sum, [, value]) => sum + Number(value || 0), 0);
+    const total = Number(await redis.get("rotator:total") || 0);
+    const today = todayET();
+    const dailyControllerClaims = Number(await redis.get("rotator:daily_controller_claims:" + today) || 0);
+    const controllersClaimed = profiles.reduce((sum, profile) => sum + profile.controllersClaimed, 0);
 
     if (event.httpMethod === "GET") {
-      const today = new Date().toISOString().slice(0, 10);
       return json(200, {
-        links: links.map(link => ({ ...link, count: Number(counts[link.id] || 0), countToday: Number(dailyCounts[todayET + ":" + link.id] || 0) })),
-        total, profiles, settings, claimedAllTime, redirectsToday,
-        activeProfiles: profiles.filter(profile => profile.enabled !== false).length,
-        completedToday: profiles.filter(profile => profile.doneDate === todayET).length,
+        links: links.map(link => ({ ...link, count: Number(counts[link.id] || 0), countToday: Number(dailyCounts[today + ":" + link.id] || 0) })),
+        total, profiles, controllersClaimed, dailyControllerClaims,
+        activeProfiles: profiles.filter(profile => profile.enabled).length,
+        completedToday: profiles.filter(profile => profile.doneDate === today).length,
         lastActivity: await redis.get("rotator:last_activity") || null
       });
     }
@@ -58,67 +72,66 @@ exports.handler = async function (event) {
       const index = links.findIndex(x => x.id === body.id);
       if (index < 0) return json(404, { error: "Link not found." });
       links.splice(index, 1);
-    } else if (action === "add-profile") {
-      const name = String(body.name || "").trim().slice(0, 100);
-      const linkId = String(body.linkId || "");
-      const group = String(body.group || "Ungrouped").trim().slice(0,80) || "Ungrouped";
-      if (!name) return json(400, { error: "Enter a profile name." });
-      if (linkId && !links.some(link => link.id === linkId)) return json(400, { error: "Choose an existing link for this profile." });
-      if (profiles.some(profile => String(profile.name).toLowerCase() === name.toLowerCase())) return json(409, { error: "That profile already exists." });
-      profiles.push({ id: newId(), name, linkId, group, enabled: true, points: 0, claimed: false, doneDate: null, createdAt: new Date().toISOString() });
+    } else if (action === "add-profile" || action === "add-profiles") {
+      const items = action === "add-profiles" ? body.profiles : [body];
+      if (!Array.isArray(items) || !items.length) return json(400, { error: "Add at least one profile." });
+      let added = 0;
+      for (const item of items) {
+        const profileNumber = String(item.profileNumber || item.name || "").trim().slice(0, 100);
+        const tiktokUrl = String(item.tiktokUrl || "").trim();
+        const group = String(item.group || "Ungrouped").trim().slice(0, 80) || "Ungrouped";
+        if (!profileNumber) continue;
+        if (profiles.some(p => p.profileNumber.toLowerCase() === profileNumber.toLowerCase())) continue;
+        const profile = cleanProfile({
+          id: newId(), profileNumber, name: profileNumber, tiktokUrl, group,
+          enabled: true, controllersClaimed: 0, redirectsTotal: 0, redirectsToday: 0,
+          doneDate: null, createdAt: new Date().toISOString()
+        });
+        profiles.push(profile); added++;
+      }
+      if (!added) return json(409, { error: "No new profiles were added. Check for blank or duplicate profile numbers." });
       await redis.set("rotator:profiles", profiles);
+      return json(200, { ok: true, added });
     } else if (action === "daily-done") {
       const profile = profiles.find(item => item.id === body.id);
       if (!profile) return json(404, { error: "Profile not found." });
-      const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
       profile.doneDate = body.done ? today : null;
-      await redis.set("rotator:profiles", profiles);
-    } else if (action === "claim-profile" || action === "set-claimed") {
+    } else if (action === "set-controllers") {
       const profile = profiles.find(item => item.id === body.id);
       if (!profile) return json(404, { error: "Profile not found." });
-      profile.claimed = action === "set-claimed" ? Boolean(body.claimed) : true;
-      profile.claimedAt = profile.claimed ? (profile.claimedAt || new Date().toISOString()) : null;
-      await redis.set("rotator:profiles", profiles);
+      const next = Number(body.value);
+      if (!Number.isSafeInteger(next) || next < 0) return json(400, { error: "Controllers claimed must be a whole number of 0 or more." });
+      const delta = next - profile.controllersClaimed;
+      profile.controllersClaimed = next;
+      if (delta > 0) await redis.incrby("rotator:daily_controller_claims:" + today, delta);
     } else if (action === "update-profile") {
       const profile = profiles.find(item => item.id === body.id);
       if (!profile) return json(404, { error: "Profile not found." });
+      if (body.profileNumber !== undefined || body.name !== undefined) {
+        const value = String(body.profileNumber ?? body.name ?? "").trim().slice(0, 100);
+        if (!value) return json(400, { error: "Profile number is required." });
+        if (profiles.some(p => p.id !== profile.id && p.profileNumber.toLowerCase() === value.toLowerCase())) return json(409, { error: "That profile number already exists." });
+        profile.profileNumber = value; profile.name = value;
+      }
+      if (body.tiktokUrl !== undefined) profile.tiktokUrl = String(body.tiktokUrl || "").trim();
       if (body.group !== undefined) profile.group = String(body.group || "Ungrouped").trim().slice(0, 80) || "Ungrouped";
       if (body.enabled !== undefined) profile.enabled = Boolean(body.enabled);
-      await redis.set("rotator:profiles", profiles);
     } else if (action === "bulk-profile" || action === "bulk-group") {
       const ids = new Set(Array.isArray(body.ids) ? body.ids : []);
       for (const profile of profiles) if (ids.has(profile.id)) {
         if (action === "bulk-profile") profile.enabled = Boolean(body.enabled);
         else profile.group = String(body.group || "Ungrouped").trim().slice(0, 80) || "Ungrouped";
       }
-      await redis.set("rotator:profiles", profiles);
-    } else if (action === "complete-profile") {
-      const profile = profiles.find(item => item.id === body.id);
-      if (!profile) return json(404, { error: "Profile not found." });
-      if (!profile.completed) {
-        profile.completed = true;
-        profile.completedAt = new Date().toISOString();
-        if (settings.autoExcludeCompleted) {
-          const linked = links.find(link => link.id === profile.linkId);
-          if (linked) linked.enabled = false;
-        }
-        await redis.set("rotator:profiles", profiles);
-        await redis.set("rotator:links", links);
-      }
-    } else if (action === "profile-settings") {
-      settings.autoExcludeCompleted = Boolean(body.autoExcludeCompleted);
-      if (settings.autoExcludeCompleted) {
-        const completedLinkIds = new Set(profiles.filter(profile => profile.completed).map(profile => profile.linkId));
-        for (const link of links) if (completedLinkIds.has(link.id)) link.enabled = false;
-      }
-      await redis.set("rotator:profile_settings", settings);
-      await redis.set("rotator:links", links);
+    } else if (action === "delete-profile") {
+      const index = profiles.findIndex(item => item.id === body.id);
+      if (index < 0) return json(404, { error: "Profile not found." });
+      profiles.splice(index, 1);
     } else {
       return json(400, { error: "Unknown action." });
     }
 
     await redis.set("rotator:links", links);
-    if (action !== "add-profile") await redis.set("rotator:profiles", profiles);
+    await redis.set("rotator:profiles", profiles);
     return json(200, { ok: true });
   } catch (error) {
     console.error("Admin API failed:", error.message);
