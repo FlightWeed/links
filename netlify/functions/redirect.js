@@ -20,6 +20,7 @@ redis.call('INCR', KEYS[4])
 
 -- Assign each redirect to the next enabled GeeLark profile, if profiles exist.
 local assigned = ''
+local assignedNumber = ''
 local profileRaw = redis.call('GET', KEYS[7])
 if profileRaw then
   local profiles = cjson.decode(profileRaw)
@@ -32,6 +33,7 @@ if profileRaw then
     local pIndex = (pCursor % #active) + 1
     local profile = active[pIndex]
     assigned = tostring(profile.id or '')
+    assignedNumber = tostring(profile.profileNumber or profile.name or '')
     redis.call('SET', KEYS[8], tostring(pCursor + 1))
     profile.redirectsTotal = tonumber(profile.redirectsTotal or 0) + 1
     if profile.redirectsDate == ARGV[1] then
@@ -46,6 +48,7 @@ if profileRaw then
 end
 
 redis.call('SET', KEYS[5], ARGV[2])
+redis.call('SET', KEYS[9], cjson.encode({url=chosen.url, linkId=chosen.id, profileId=assigned, profileNumber=assignedNumber, timestamp=tonumber(ARGV[2])}))
 return {chosen.url, chosen.id, assigned}
 `;
 
@@ -59,7 +62,7 @@ exports.handler = async function () {
     const result = await redis.eval(
       ROTATE_SCRIPT,
       ["rotator:links", "rotator:cursor", "rotator:link_counts", "rotator:total",
-       "rotator:last_activity", "rotator:daily_counts", "rotator:profiles", "rotator:profile_cursor"],
+       "rotator:last_activity", "rotator:daily_counts", "rotator:profiles", "rotator:profile_cursor", "rotator:last_redirect"],
       [day, String(now)]
     );
     if (!result || !result[0]) {
