@@ -26,7 +26,11 @@ exports.handler=async function(event){
    completedToday:links.filter(x=>x.doneDate===today).length,lastActivity:await redis.get("rotator:last_activity")||null,lastRedirect:await redis.get("rotator:last_redirect")||null});
   let body;try{body=JSON.parse(event.body||"{}")}catch{return json(400,{error:"Invalid JSON."})}
   const action=body.action;
-  if(action==="add"||action==="bulk-add"){
+  if(action==="clear-all"){
+   const removed=links.length;
+   await redis.set("rotator:links",[]);
+   return json(200,{ok:true,removed});
+  }else if(action==="add"||action==="bulk-add"){
    const items=action==="add"?[body]:body.links;
    if(!Array.isArray(items)||!items.length)return json(400,{error:"Add at least one link."});
    let added=0;
