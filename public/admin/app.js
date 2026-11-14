@@ -3,12 +3,13 @@ const loginPanel=$("login-panel"),appPanel=$("app-panel");
 let links=[],selectedLinks=new Set();
 function notice(id,text,error=false){const el=$(id);if(el){el.textContent=text||"";el.style.color=error?"#b91c1c":"#166534";}}
 function message(text,error=false){notice("notice",text,error);}
-async function request(url,options={}){const r=await fetch(url,{credentials:"same-origin",headers:{"content-type":"application/json",...(options.headers||{})},...options});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||`Request failed (${r.status})`);return d;}
-function showApp(){loginPanel.classList.add("hidden");appPanel.classList.remove("hidden");$("logout").classList.remove("hidden");}
-function showLogin(){appPanel.classList.add("hidden");loginPanel.classList.remove("hidden");$("logout").classList.add("hidden");}
+async function request(url,options={}){const r=await fetch(url,{cache:"no-store",credentials:"same-origin",headers:{"content-type":"application/json",...(options.headers||{})},...options});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||`Request failed (${r.status})`);return d;}
+function showApp(){loginPanel.classList.add("hidden");appPanel.classList.remove("hidden");$("logout").classList.remove("hidden");$("refresh").classList.remove("hidden");}
+function showLogin(){appPanel.classList.add("hidden");loginPanel.classList.remove("hidden");$("logout").classList.add("hidden");$("refresh").classList.add("hidden");}
 function todayET(){return new Intl.DateTimeFormat("en-CA",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}
 async function load(){try{
  const d=await request("/.netlify/functions/admin-api",{method:"GET"});links=d.links||[];
+ $("total-today").textContent=links.reduce((sum,l)=>sum+Number(l.countToday||0),0).toLocaleString();
  $("total").textContent=Number(d.total||0).toLocaleString();
  $("active-count").textContent=Number(d.activeLinks??links.filter(x=>x.enabled).length).toLocaleString();
  $("all-count").textContent=links.length.toLocaleString();
